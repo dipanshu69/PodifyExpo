@@ -42,7 +42,7 @@ const LostPassWord: FC<Props> = (props) => {
       const {data} = await client.post('/auth/forget-PassWord', {
         ...value
       });
-      console.log(data);
+      console.log("LostPassword" ,data);
     } catch (error) {
       console.log("ForgetPasswordError", error)
     }

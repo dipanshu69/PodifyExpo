@@ -66,7 +66,7 @@ const SignUp: FC<Props> = () => {
           ...values,
         }
       );
-      console.log(data);
+      console.log("SignUp", data);
       navigation.navigate("Verification", { userInfo: data.user });
       actions.setSubmitting(false);
     } catch (err) {

@@ -4,6 +4,7 @@ import { ViewStyle } from "react-native";
 import { Pressable, StyleProp, StyleSheet, Text, View } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 
+
 interface Props {
   icon?: ReactNode;
   btnTitle?: string;
@@ -22,20 +23,10 @@ const FileSelector: FC<Props> = ({
   const handleDocumentSelect = async () => {
     try {
       const docRes = await DocumentPicker.getDocumentAsync(options);
-      const formData = new FormData();
       const assets = docRes.assets;
       if (!assets) return;
       const file = assets[0];
       onSelect(file);
-
-      const audioFile = {
-        name: file.name.split(".")[0],
-        uri: file.uri,
-        type: file.mimeType,
-        size: file.size,
-      };
-      formData.append("audioFile", audioFile as any);
-      console.log(docRes);
     } catch (error) {
       console.log("Error while selecting file: ", error);
     }

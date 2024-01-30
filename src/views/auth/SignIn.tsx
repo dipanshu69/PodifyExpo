@@ -52,7 +52,7 @@ const SignIn: FC<Props> = (props) => {
       const { data } = await client.post("auth/sign-in", {
         ...values,
       });
-      console.log(data);
+      console.log("SignIn", data);
       await saveToAsyncStorage(Keys.AUTH_TOKEN, data.token);
       dispatch(updateProfile(data.profile));
       dispatch(updateLoggedInState(true));

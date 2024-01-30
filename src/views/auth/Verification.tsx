@@ -67,7 +67,7 @@ const Verification: FC<Props> = ({ route }) => {
         userId: userInfo.id,
       });
       navigation.navigate("SignIn");
-      console.log(data);
+      console.log("Verification", data);
     } catch (err) {
       console.log("Verification Failed", err);
     }
@@ -81,7 +81,7 @@ const Verification: FC<Props> = ({ route }) => {
       const {data} = await client.post("/auth/re-verify-email", {
         userId: userInfo.id,
       });
-      console.log(data);
+      console.log("Verification", data);
     } catch (error) {
       console.log("Re-Verification Error", error);
     }

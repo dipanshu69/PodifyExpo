@@ -14,12 +14,100 @@ import {
 } from "react-native";
 import { types } from "react-native-document-picker";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import * as DocumentPicker from "expo-document-picker";
+import * as yup from "yup";
+import client from "src/api/client";
+import { Keys, getFromAsyncStorage } from "@utils/asyncStorage";
+
+interface FormFields {
+  title: string;
+  category: string;
+  about: string;
+  file?: DocumentPicker.DocumentPickerAsset;
+  poster?: DocumentPicker.DocumentPickerAsset;
+}
+
+const audioInfoSchema = yup.object({
+  title: yup.string().trim("Title Is Missing").required("Title Is Required"),
+  category: yup
+    .string()
+    .trim("Tile Is Missing")
+    .oneOf(categories, "categories is Missing"),
+  about: yup.string().trim("About Is Missing").required("About Is Required"),
+  file: yup.object().shape({
+    uri: yup.string().required("Audio File URi Is Missing"),
+    name: yup.string().required("Audio File Name Is Missing"),
+    mimeType: yup.string().required("Audio File Is File Missing"),
+    size: yup.number().required("Audio File Is  Size Missing"),
+  }),
+  poster: yup.object().shape({
+    uri: yup.string(),
+    name: yup.string(),
+    mimeType: yup.string(),
+    size: yup.number(),
+  }),
+});
+
+const defaultForm: FormFields = {
+  title: "",
+  category: "",
+  about: "",
+};
 
 interface Props {}
 
 const Upload: FC<Props> = (props) => {
   const [showCategoryModal, setShowCategoryModal] = useState<boolean>(false);
-  const [audioInfo, setAudioInfo] = useState({category: "" });
+  const [audioInfo, setAudioInfo] = useState({ ...defaultForm });
+
+  const handleUpload = async () => {
+    try {
+      const data = await audioInfoSchema.validate(audioInfo);
+      console.log("Upload", data);
+      const formData = new FormData();
+
+      formData.append("title", data.title);
+      formData.append("about", data.about);
+      formData.append("category", data.category as any);
+      const audioFile = {
+        name: data.file.name.split(".")[0],
+        type: data.file.mimeType,
+        uri: data.file.uri,
+        size:data.file.size
+      };
+      formData.append("audioFile", audioFile as any);
+
+      if (data.poster) {
+        const poster = {
+          name: data.poster.name,
+          type: data.poster.mimeType,
+          uri: data.poster.uri,
+        };
+        formData.append("poster", poster as any);
+      }
+
+      const token = await getFromAsyncStorage(Keys.AUTH_TOKEN);
+
+      const audio = await client.post("/audio/create", formData, {
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      console.log("Upload", audio.data);
+    } catch (error: any) {
+      if (error instanceof yup.ValidationError) {
+        console.log(error);
+      }
+      console.log(
+        "Status Code:",
+        error.response.status,
+        "Data:",
+        error.response.data
+      );
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -33,9 +121,9 @@ const Upload: FC<Props> = (props) => {
             />
           }
           btnTitle="Select Poster"
-          options={{type: [types.images] }}
-          onSelect={(file) => {
-            console.log(file)
+          options={{ type: "image/*" }}
+          onSelect={(poster) => {
+            setAudioInfo({ ...audioInfo, poster });
           }}
         />
         <FileSelector
@@ -48,9 +136,9 @@ const Upload: FC<Props> = (props) => {
           }
           btnTitle="Select Audio"
           style={{ marginLeft: 20 }}
-          options={{type: [types.audio]}}
+          options={{ type: "audio/*" }}
           onSelect={(file) => {
-            console.log(file)
+            setAudioInfo({ ...audioInfo, file });
           }}
         />
       </View>
@@ -59,6 +147,9 @@ const Upload: FC<Props> = (props) => {
           placeholderTextColor={colors.INACTIVE_CONTRAST}
           style={styles.input}
           placeholder="Title"
+          onChangeText={(text) => {
+            setAudioInfo({ ...audioInfo, title: text });
+          }}
         />
         <Pressable
           onPress={() => {
@@ -75,6 +166,9 @@ const Upload: FC<Props> = (props) => {
           placeholder="About"
           numberOfLines={10}
           multiline
+          onChangeText={(text) => {
+            setAudioInfo({ ...audioInfo, about: text });
+          }}
         />
         <CategorySelector
           visible={showCategoryModal}
@@ -85,11 +179,11 @@ const Upload: FC<Props> = (props) => {
             return <Text style={styles.category}>{item}</Text>;
           }}
           onSelect={(item) => {
-            setAudioInfo({ category: item });
+            setAudioInfo({ ...audioInfo, category: item });
           }}
         />
         <View style={{ marginBottom: 20 }} />
-        <AppButton title="Submit" />
+        <AppButton title="Submit" onPress={handleUpload} />
       </View>
     </ScrollView>
   );
@@ -115,8 +209,8 @@ const styles = StyleSheet.create({
   },
   category: {
     padding: 10,
-    color:colors.PRIMARY,
-    fontSize:18
+    color: colors.PRIMARY,
+    fontSize: 18,
   },
   categorySelector: {
     flexDirection: "row",
